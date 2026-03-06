@@ -1,0 +1,2 @@
+# Allow non-root access to Sound BlasterX Katana HID interfaces
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="041e", ATTRS{idProduct}=="3247", MODE="0666"

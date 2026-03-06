@@ -1,0 +1,15 @@
+[Unit]
+Description=katanactl REST API for Sound BlasterX Katana
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/home/pi/soundblaster-katana-ctl/.venv/bin/uvicorn katanactl.api:app --host 0.0.0.0 --port 8099
+WorkingDirectory=/home/pi/soundblaster-katana-ctl
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "katanactl"
+version = "0.1.0"
+description = "Control the Creative Sound BlasterX Katana soundbar via USB HID"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "click>=8.0",
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.20",
+]
+
+[project.scripts]
+katanactl = "katanactl.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
