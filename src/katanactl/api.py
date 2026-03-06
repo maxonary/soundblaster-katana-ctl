@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from contextlib import contextmanager
 from typing import Generator
 
@@ -25,17 +26,22 @@ app = FastAPI(
     version="0.1.0",
 )
 
+DEVICE_UNAVAILABLE = (
+    "Sound BlasterX Katana is not available. "
+    "The device may be powered off or disconnected."
+)
+
 
 @contextmanager
 def _hid() -> Generator[KatanaHID, None, None]:
     try:
         with KatanaHID() as hid:
             yield hid
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail=DEVICE_UNAVAILABLE)
     except KatanaError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
-    except OSError as exc:
+    except (OSError, TimeoutError) as exc:
         raise HTTPException(status_code=503, detail=f"HID I/O error: {exc}")
 
 
@@ -105,27 +111,36 @@ def api_set_profile(req: ProfileRequest) -> dict:
 
 @app.get("/volume")
 def api_get_volume() -> dict:
-    """Get current volume level and mute state."""
-    return get_volume()
+    """Get current volume level and mute state via ALSA."""
+    try:
+        return get_volume()
+    except subprocess.CalledProcessError:
+        raise HTTPException(status_code=503, detail=DEVICE_UNAVAILABLE)
 
 
 @app.post("/volume")
 def api_set_volume(req: VolumeRequest) -> dict:
-    """Set volume level (0-100)."""
-    return set_volume(req.percent)
+    """Set volume level (0-100) via ALSA."""
+    try:
+        return set_volume(req.percent)
+    except subprocess.CalledProcessError:
+        raise HTTPException(status_code=503, detail=DEVICE_UNAVAILABLE)
 
 
 @app.post("/mute")
 def api_set_mute(req: MuteRequest) -> dict:
-    """Mute or unmute speakers."""
-    return set_mute(req.muted)
+    """Mute or unmute speakers via ALSA."""
+    try:
+        return set_mute(req.muted)
+    except subprocess.CalledProcessError:
+        raise HTTPException(status_code=503, detail=DEVICE_UNAVAILABLE)
 
 
 @app.get("/health")
 def api_health() -> dict:
-    """Health check -- verifies the Katana HID device is reachable."""
+    """Health check -- reports whether the Katana HID device is reachable."""
     try:
         device = find_hidraw_device()
         return {"status": "ok", "device": device}
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+    except FileNotFoundError:
+        return {"status": "unavailable", "device": None}
